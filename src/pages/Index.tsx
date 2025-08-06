@@ -4,11 +4,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import Icon from '@/components/ui/icon';
 
 const Index = () => {
   const [compareItems, setCompareItems] = useState<string[]>([]);
   const [isCompareOpen, setIsCompareOpen] = useState(false);
+  const [cartItems, setCartItems] = useState<{[key: string]: number}>({});
+  const [isCartOpen, setIsCartOpen] = useState(false);
+  const [videoModalOpen, setVideoModalOpen] = useState(false);
 
   const products = [
     {
@@ -67,6 +71,47 @@ const Index = () => {
     return products.filter(product => compareItems.includes(product.id));
   };
 
+  const addToCart = (productId: string) => {
+    setCartItems(prev => ({
+      ...prev,
+      [productId]: (prev[productId] || 0) + 1
+    }));
+  };
+
+  const removeFromCart = (productId: string) => {
+    setCartItems(prev => {
+      const newItems = { ...prev };
+      if (newItems[productId] > 1) {
+        newItems[productId]--;
+      } else {
+        delete newItems[productId];
+      }
+      return newItems;
+    });
+  };
+
+  const getCartTotal = () => {
+    return Object.entries(cartItems).reduce((total, [productId, quantity]) => {
+      const product = products.find(p => p.id === productId);
+      if (product) {
+        const price = parseInt(product.price.replace(/[^\d]/g, ''));
+        return total + price * quantity;
+      }
+      return total;
+    }, 0);
+  };
+
+  const getCartItemsCount = () => {
+    return Object.values(cartItems).reduce((sum, count) => sum + count, 0);
+  };
+
+  const scrollToSection = (sectionId: string) => {
+    const element = document.getElementById(sectionId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   const categories = [
     { name: 'iPhone', icon: 'Smartphone', count: '15 моделей' },
     { name: 'iPad', icon: 'Tablet', count: '8 моделей' },
@@ -86,12 +131,11 @@ const Index = () => {
                 <span className="text-2xl font-bold text-black tracking-tight">AppleFox</span>
               </div>
               <div className="hidden md:flex items-center space-x-8">
-                <a href="#catalog" className="text-gray-600 hover:text-black transition-colors">Каталог</a>
-                <a href="#iphone" className="text-gray-600 hover:text-black transition-colors">iPhone</a>
-                <a href="#ipad" className="text-gray-600 hover:text-black transition-colors">iPad</a>
-                <a href="#mac" className="text-gray-600 hover:text-black transition-colors">Mac</a>
-                <a href="#accessories" className="text-gray-600 hover:text-black transition-colors">Аксессуары</a>
-                <a href="#support" className="text-gray-600 hover:text-black transition-colors">Поддержка</a>
+                <button onClick={() => scrollToSection('catalog')} className="text-gray-600 hover:text-black transition-colors">Каталог</button>
+                <button onClick={() => scrollToSection('products')} className="text-gray-600 hover:text-black transition-colors">Товары</button>
+                <button onClick={() => scrollToSection('about')} className="text-gray-600 hover:text-black transition-colors">О нас</button>
+                <button onClick={() => scrollToSection('delivery')} className="text-gray-600 hover:text-black transition-colors">Доставка</button>
+                <button onClick={() => scrollToSection('contacts')} className="text-gray-600 hover:text-black transition-colors">Контакты</button>
               </div>
             </div>
             <div className="flex items-center space-x-4">
@@ -152,10 +196,63 @@ const Index = () => {
                   </div>
                 </DialogContent>
               </Dialog>
-              <Button size="sm">
-                <Icon name="ShoppingBag" size={16} className="mr-2" />
-                Корзина
-              </Button>
+              <Sheet open={isCartOpen} onOpenChange={setIsCartOpen}>
+                <SheetTrigger asChild>
+                  <Button size="sm" className="relative">
+                    <Icon name="ShoppingBag" size={16} className="mr-2" />
+                    Корзина
+                    {getCartItemsCount() > 0 && (
+                      <Badge className="absolute -top-2 -right-2 h-5 w-5 text-xs p-0 flex items-center justify-center">
+                        {getCartItemsCount()}
+                      </Badge>
+                    )}
+                  </Button>
+                </SheetTrigger>
+                <SheetContent className="w-[400px] sm:w-[540px]">
+                  <SheetHeader>
+                    <SheetTitle>Корзина покупок</SheetTitle>
+                  </SheetHeader>
+                  <div className="mt-6 space-y-4">
+                    {Object.keys(cartItems).length === 0 ? (
+                      <p className="text-center text-gray-500 py-8">Корзина пуста</p>
+                    ) : (
+                      <>
+                        {Object.entries(cartItems).map(([productId, quantity]) => {
+                          const product = products.find(p => p.id === productId);
+                          if (!product) return null;
+                          return (
+                            <div key={productId} className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
+                              <img src={product.image} alt={product.name} className="w-16 h-16 object-contain" />
+                              <div className="flex-1">
+                                <h4 className="font-semibold">{product.name}</h4>
+                                <p className="text-lg font-bold">{product.price}</p>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <Button size="sm" variant="outline" onClick={() => removeFromCart(productId)}>
+                                  <Icon name="Minus" size={14} />
+                                </Button>
+                                <span className="w-8 text-center">{quantity}</span>
+                                <Button size="sm" variant="outline" onClick={() => addToCart(productId)}>
+                                  <Icon name="Plus" size={14} />
+                                </Button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                        <div className="border-t pt-4">
+                          <div className="flex justify-between items-center mb-4">
+                            <span className="text-lg font-semibold">Итого:</span>
+                            <span className="text-2xl font-bold">{getCartTotal().toLocaleString()} ₽</span>
+                          </div>
+                          <Button className="w-full bg-black hover:bg-gray-800 text-white">
+                            Оформить заказ
+                          </Button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </SheetContent>
+              </Sheet>
             </div>
           </div>
         </div>
@@ -173,14 +270,34 @@ const Index = () => {
               Быстрая доставка по всей России.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button size="lg" className="bg-black hover:bg-gray-800 text-white px-8 py-4 text-lg">
+              <Button 
+                size="lg" 
+                className="bg-black hover:bg-gray-800 text-white px-8 py-4 text-lg"
+                onClick={() => scrollToSection('catalog')}
+              >
                 <Icon name="ShoppingBag" size={20} className="mr-2" />
                 Смотреть каталог
               </Button>
-              <Button variant="outline" size="lg" className="px-8 py-4 text-lg border-black text-black hover:bg-black hover:text-white">
-                <Icon name="Play" size={20} className="mr-2" />
-                Посмотреть видео
-              </Button>
+              <Dialog open={videoModalOpen} onOpenChange={setVideoModalOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="lg" className="px-8 py-4 text-lg border-black text-black hover:bg-black hover:text-white">
+                    <Icon name="Play" size={20} className="mr-2" />
+                    Посмотреть видео
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-4xl">
+                  <DialogHeader>
+                    <DialogTitle>О магазине AppleFox</DialogTitle>
+                  </DialogHeader>
+                  <div className="aspect-video bg-gray-100 rounded-lg flex items-center justify-center">
+                    <div className="text-center">
+                      <Icon name="Play" size={64} className="text-gray-400 mb-4" />
+                      <p className="text-gray-600">Презентационное видео о AppleFox</p>
+                      <p className="text-sm text-gray-500 mt-2">Узнайте больше о наших продуктах и услугах</p>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
             </div>
           </div>
         </div>
@@ -197,7 +314,7 @@ const Index = () => {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             {categories.map((category, index) => (
-              <Card key={index} className="group cursor-pointer border-0 shadow-sm hover:shadow-xl transition-all duration-300 bg-gray-50 hover:bg-white">
+              <Card key={index} className="group cursor-pointer border-0 shadow-sm hover:shadow-xl transition-all duration-300 bg-gray-50 hover:bg-white" onClick={() => scrollToSection('products')}>
                 <CardContent className="p-8 text-center">
                   <div className="mb-4 p-4 bg-white rounded-2xl inline-block group-hover:scale-110 transition-transform duration-300">
                     <Icon name={category.icon as any} size={32} className="text-black" />
@@ -212,7 +329,7 @@ const Index = () => {
       </section>
 
       {/* Featured Products */}
-      <section className="py-20 bg-gray-50">
+      <section id="products" className="py-20 bg-gray-50">
         <div className="container mx-auto px-6">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-black mb-4">Популярные товары</h2>
@@ -260,7 +377,10 @@ const Index = () => {
                       {compareItems.includes(product.id) ? 'В сравнении' : 'Сравнить'}
                     </Button>
                   </div>
-                  <Button className="w-full bg-black hover:bg-gray-800 text-white">
+                  <Button 
+                    className="w-full bg-black hover:bg-gray-800 text-white"
+                    onClick={() => addToCart(product.id)}
+                  >
                     <Icon name="ShoppingCart" size={16} className="mr-2" />
                     В корзину
                   </Button>
@@ -309,7 +429,7 @@ const Index = () => {
       </section>
 
       {/* Services */}
-      <section className="py-20 bg-gray-50">
+      <section id="delivery" className="py-20 bg-gray-50">
         <div className="container mx-auto px-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
             <div>
@@ -344,7 +464,7 @@ const Index = () => {
                 </div>
               </div>
             </div>
-            <div>
+            <div id="contacts">
               <h2 className="text-4xl font-bold text-black mb-6">Контакты</h2>
               <div className="space-y-6">
                 <div className="flex items-start space-x-4">
@@ -396,19 +516,19 @@ const Index = () => {
             <div>
               <h3 className="font-semibold mb-4">Продукты</h3>
               <div className="space-y-2">
-                <a href="#" className="block text-gray-400 hover:text-white transition-colors">iPhone</a>
-                <a href="#" className="block text-gray-400 hover:text-white transition-colors">iPad</a>
-                <a href="#" className="block text-gray-400 hover:text-white transition-colors">Mac</a>
-                <a href="#" className="block text-gray-400 hover:text-white transition-colors">Аксессуары</a>
+                <button onClick={() => scrollToSection('products')} className="block text-gray-400 hover:text-white transition-colors text-left">iPhone</button>
+                <button onClick={() => scrollToSection('products')} className="block text-gray-400 hover:text-white transition-colors text-left">iPad</button>
+                <button onClick={() => scrollToSection('products')} className="block text-gray-400 hover:text-white transition-colors text-left">Mac</button>
+                <button onClick={() => scrollToSection('products')} className="block text-gray-400 hover:text-white transition-colors text-left">Аксессуары</button>
               </div>
             </div>
             <div>
               <h3 className="font-semibold mb-4">Поддержка</h3>
               <div className="space-y-2">
-                <a href="#" className="block text-gray-400 hover:text-white transition-colors">Доставка</a>
-                <a href="#" className="block text-gray-400 hover:text-white transition-colors">Гарантия</a>
-                <a href="#" className="block text-gray-400 hover:text-white transition-colors">Возврат</a>
-                <a href="#" className="block text-gray-400 hover:text-white transition-colors">Контакты</a>
+                <button onClick={() => scrollToSection('delivery')} className="block text-gray-400 hover:text-white transition-colors text-left">Доставка</button>
+                <button onClick={() => scrollToSection('about')} className="block text-gray-400 hover:text-white transition-colors text-left">Гарантия</button>
+                <button onClick={() => scrollToSection('delivery')} className="block text-gray-400 hover:text-white transition-colors text-left">Возврат</button>
+                <button onClick={() => scrollToSection('contacts')} className="block text-gray-400 hover:text-white transition-colors text-left">Контакты</button>
               </div>
             </div>
             <div>
