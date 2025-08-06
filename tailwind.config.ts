@@ -18,6 +18,10 @@ export default {
 			}
 		},
 		extend: {
+			fontFamily: {
+				'sf-pro': ['SF Pro Display', 'system-ui', '-apple-system', 'sans-serif'],
+				'sf-text': ['SF Pro Text', 'system-ui', '-apple-system', 'sans-serif'],
+			},
 			colors: {
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
@@ -61,6 +65,12 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
+				},
+				apple: {
+					black: '#000000',
+					white: '#FFFFFF',
+					'light-gray': '#F5F5F7',
+					'dark-gray': '#1D1D1F'
 				}
 			},
 			borderRadius: {
